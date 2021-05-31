@@ -9,16 +9,14 @@
 #define Q 5
 #define N 1
 #define SEED 0
-
-// mutex lock;
  
 float p;
-int t;
+double t;
 int q;
 int n;
 pthread_t mod;
-pthread_t com;
-
+pthread_t coms[N];
+pthread_mutex_t lock;
 Queue answerQueue;
 
 int main() {
@@ -35,19 +33,34 @@ void init () {
     q = Q;
     n = N;
     srand(SEED);
+    answerQueue = *createQueue(n);
+    
+    if (pthread_mutex_init(&lock, NULL) != 0) {
+        printf("\n mutex init has failed\n");
+        return 1;
+    }
+
     // create mod thread
+    pthread_create(&mod, NULL, moderate, NULL);
 
     // create com thread
-    answerQueue = *createQueue(n);
+    for(int i = 0; i < n; i++) {
+        pthread_create(&coms[i], NULL, run, NULL);
+    }
+
 }
 
 /* main loop */
-void run () {
+void moderate () {
     while (q != 0) {
         askQuestion();
-        while (!isEmpty(&answerQueue))
-            answerQuestion();
+        while (!isEmpty(&answerQueue));
+            // give lock to first com.
     }
+    for(int i = 0; i < n; i++) {
+        pthread_join(&coms[i], NULL);
+    }
+    pthread_join(&mod, NULL);
 }
 
 /* ask a question:
@@ -59,12 +72,13 @@ void askQuestion() {
 }
 
 /* answer a question
-- pop a com from queue
 - make com speak (sleep)
-- 
 */
-void answerQuestion() {
-    
+void participate() {
+    pthread_t com = pop(answerQueue);
+    // lock
+    pthread_sleep(t);
+    // unlock    
 }
 
 /*
@@ -73,9 +87,10 @@ void answerQuestion() {
 void chooseCommentatorsToAnswer() {
     for (int i = 0; i < n; i++) {
         if (rand() % 99 < p * 100) {
-            // add com[i] to queue
+            enqueue(&answerQueue, coms[i]);
         }
     }
+
 }
 
 // how to global queue
