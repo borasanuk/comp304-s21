@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <time.h>
+#include <sys/time.h>
 
 /**
  * pthread_sleep takes an integer number of seconds to pause the current thread
@@ -9,8 +10,7 @@
  * updated by Muhammed Nufail Farooqi
  * updated by Fahrican Kosar
  */
-int
-pthread_sleep(double seconds){
+int pthread_sleep(double seconds){
     pthread_mutex_t mutex;
     pthread_cond_t conditionvar;
     if(pthread_mutex_init(&mutex,NULL)){
