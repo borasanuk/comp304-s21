@@ -104,5 +104,4 @@ void chooseCommentatorsToAnswer() {
             enqueue(&answerQueue, coms[i]);
         }
     }
-
 }

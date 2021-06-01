@@ -68,3 +68,10 @@ pthread_t dequeue(struct Queue* queue)
 	queue->size = queue->size - 1;
 	return item;
 }
+
+int contains(struct Queue* queue, pthread_t item)
+{
+	for (int i = 0; i < queue->size; i++)
+		if (queue->array[i] == item) return 1;
+	return 0;
+}
