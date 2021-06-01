@@ -90,7 +90,6 @@ void askQuestion() {
 - make com speak (sleep)
 */
 void *participate(void *dummy) {
-    pthread_t com = dequeue(&answerQueue);
     pthread_mutex_lock(&lock);
     pthread_sleep(t);
     pthread_mutex_unlock(&lock);
