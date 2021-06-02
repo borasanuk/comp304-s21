@@ -4,6 +4,7 @@
 #include "pthread_sleep.c"
 #include <time.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define true 1
 #define P 1
@@ -18,6 +19,7 @@ void *commentate(void *arg);
 void askQuestion();
 void chooseCommentatorsToAnswer();
 int indexOf(pthread_t thread);
+double t_speak();
 
 pthread_t mod;
 pthread_t coms[N];
@@ -25,24 +27,60 @@ pthread_t currentCom;
 pthread_mutex_t mutex;
 pthread_cond_t cond;
 
-
-float p;
-double t;
-int q;
 int n;
+int q;
+double t;
+double p;
 
 Queue answerQueue;
 
-int main() {
+int main(int argc, char *argv[]) {
+    n = N;
+    q = Q;
+    t = T;
+    p = P;
+
+    printf("argc: %d\n", argc);
+
+    for (int i = 0; i < argc; i++)
+    {
+        printf("%s|", argv[i]);
+    }
+    printf("\n");
+
+    printf("entering loop\n");
+    for (int i = 1; i < argc; i++)
+    {
+        printf("in loop\n");
+        if (strcmp(argv[i], "-n") == 0) {
+            printf("comparing\n ");
+            n = atoi(argv[i + 1]);
+            i++;
+        }
+/* 
+        else if (strcmp(argv[i], "-q") == 0) {
+            printf("%s: %s", argv[i], argv[i + 1]);
+            if (argv[++i] != NULL)
+                q = atoi(argv[i]);
+        }
+
+        else if (strcmp(argv[i], "-t") == 0) {
+            printf("%s: %s", argv[i], argv[i + 1]);
+            if (argv[++i] != NULL)
+                t = strtod(argv[i], NULL);
+        }
+        
+        else if (strcmp(argv[i], "-p") == 0) {
+            printf("%s: %s", argv[i], argv[i + 1]);
+            if (argv[++i] != NULL)
+                p = strtod(argv[i], NULL);
+        }    */
+    }
+    
     init();
 }
 
 void init () {    
-    p = P;
-    t = T;
-    q = Q;
-    n = N;
-
     srand(SEED);
     answerQueue = *createQueue(n);
 
@@ -101,13 +139,12 @@ void *commentate(void *arg) {
             pthread_cond_wait(&cond,&mutex);
         }
         if(currentCom == pthread_self()) {
-            pthread_sleep(t);
+            pthread_sleep(t_speak());
             printf("Commentator #%d answers question #%d.\n", indexOf(pthread_self()), q + 1);
             currentCom = NULL;
         }
         pthread_mutex_unlock(&mutex);
     }
-    
 }
 
 void askQuestion() {
@@ -118,7 +155,8 @@ void askQuestion() {
 
 void chooseCommentatorsToAnswer() {
     for (int i = 0; i < n; i++) {
-        if (rand() % 101 <= p * 100) {
+        if (p * ((double) rand() / (double) RAND_MAX) <= 100) {
+            printf("Commentator #%d will answer.\n", i);
             enqueue(&answerQueue, coms[i]);
         }
     }
@@ -128,4 +166,8 @@ int indexOf(pthread_t thread) {
     for(int i=0; i<n; i++)
         if(thread == coms[i]) return i;
     return -1;
+}
+
+double t_speak() {
+    return t * ((double) rand() / (double) RAND_MAX);
 }
