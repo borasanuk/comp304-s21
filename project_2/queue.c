@@ -75,3 +75,10 @@ int contains(struct Queue* queue, pthread_t item)
 		if (queue->array[i] == item) return 1;
 	return 0;
 }
+
+int index0fThread(struct Queue* queue, pthread_t item)
+{
+	for (int i = 0; i < queue->size; i++)
+		if (queue->array[i] == item) return i;
+	return -1;
+}

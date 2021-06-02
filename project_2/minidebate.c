@@ -31,50 +31,35 @@ int n;
 int q;
 double t;
 double p;
+int currentQ = 0;
+int currentComNo = 0;
 
 Queue answerQueue;
 
 int main(int argc, char *argv[]) {
-    n = N;
-    q = Q;
-    t = T;
-    p = P;
 
     printf("argc: %d\n", argc);
 
     for (int i = 0; i < argc; i++)
     {
-        printf("%s|", argv[i]);
+        printf("%s |", argv[i]);
     }
     printf("\n");
-
-    printf("entering loop\n");
+    
     for (int i = 1; i < argc; i++)
     {
-        printf("in loop\n");
         if (strcmp(argv[i], "-n") == 0) {
-            printf("comparing\n ");
             n = atoi(argv[i + 1]);
-            i++;
-        }
-/* 
+        } 
         else if (strcmp(argv[i], "-q") == 0) {
-            printf("%s: %s", argv[i], argv[i + 1]);
-            if (argv[++i] != NULL)
-                q = atoi(argv[i]);
+            q = atoi(argv[i + 1]);
         }
-
         else if (strcmp(argv[i], "-t") == 0) {
-            printf("%s: %s", argv[i], argv[i + 1]);
-            if (argv[++i] != NULL)
-                t = strtod(argv[i], NULL);
-        }
-        
+            t = atof(argv[i + 1]);
+        } 
         else if (strcmp(argv[i], "-p") == 0) {
-            printf("%s: %s", argv[i], argv[i + 1]);
-            if (argv[++i] != NULL)
-                p = strtod(argv[i], NULL);
-        }    */
+            p = atof(argv[i + 1]);
+        }
     }
     
     init();
@@ -118,9 +103,11 @@ void *moderate(void *arg) {
         } 
         pthread_sleep(t);
         pthread_mutex_lock(&mutex);
-        if (isEmpty(&answerQueue) && q > 0)
+        if (isEmpty(&answerQueue) && q > 0) {
+            currentQ++;
+            currentComNo = 0;
             askQuestion();
-        else
+        } else
             currentCom = dequeue(&answerQueue);
         pthread_mutex_unlock(&mutex);
         pthread_cond_broadcast(&cond);
@@ -134,13 +121,15 @@ void *commentate(void *arg) {
             pthread_mutex_unlock(&mutex);
             pthread_cond_broadcast(&cond);
             break;
-        } 
+        }
         while (isEmpty(&answerQueue)) {
             pthread_cond_wait(&cond,&mutex);
         }
         if(currentCom == pthread_self()) {
+            printf("Commentator #%d's turn to speak for %f seconds. \n", indexOf(pthread_self()),t_speak());
             pthread_sleep(t_speak());
-            printf("Commentator #%d answers question #%d.\n", indexOf(pthread_self()), q + 1);
+            currentComNo++;
+            printf("Commentator #%d finished speaking.\n", indexOf(pthread_self()));
             currentCom = NULL;
         }
         pthread_mutex_unlock(&mutex);
@@ -148,7 +137,7 @@ void *commentate(void *arg) {
 }
 
 void askQuestion() {
-    printf("Moderator asks question #%d.\n", q);
+    printf("Moderator asks question #%d.\n", currentQ);
     q--;
     chooseCommentatorsToAnswer();
 }
@@ -156,7 +145,7 @@ void askQuestion() {
 void chooseCommentatorsToAnswer() {
     for (int i = 0; i < n; i++) {
         if (p * ((double) rand() / (double) RAND_MAX) <= 100) {
-            printf("Commentator #%d will answer.\n", i);
+            printf("Commentator #%d generates answer, position in queue: %d\n", i, (&answerQueue)->size + 1);
             enqueue(&answerQueue, coms[i]);
         }
     }
@@ -169,5 +158,5 @@ int indexOf(pthread_t thread) {
 }
 
 double t_speak() {
-    return t * ((double) rand() / (double) RAND_MAX);
+    return (t - 1) * ((double) rand() / (double) RAND_MAX) + 1;
 }
