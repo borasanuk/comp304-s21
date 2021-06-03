@@ -32,7 +32,6 @@ int q;
 double t;
 double p;
 int currentQ = 0;
-int currentComNo = 0;
 
 Queue answerQueue;
 
@@ -105,7 +104,6 @@ void *moderate(void *arg) {
         pthread_mutex_lock(&mutex);
         if (isEmpty(&answerQueue) && q > 0) {
             currentQ++;
-            currentComNo = 0;
             askQuestion();
         } else
             currentCom = dequeue(&answerQueue);
@@ -115,20 +113,33 @@ void *moderate(void *arg) {
 }
 
 void *commentate(void *arg) {
+
     while (q >= 0) {
         pthread_mutex_lock(&mutex);
+
+        // this block is for checking if we're done
         if (isEmpty(&answerQueue) && q <= 0) {
             pthread_mutex_unlock(&mutex);
             pthread_cond_broadcast(&cond);
             break;
         }
-        while (isEmpty(&answerQueue)) {
+
+        // wait
+        while (isEmpty(&answerQueue) {
             pthread_cond_wait(&cond,&mutex);
         }
+
+        lastQ++;
+
+        if (p * ((double) rand() / (double) RAND_MAX) <= 100) {
+            printf("Commentator #%d generates answer, position in queue: %d\n", indexOf(pthread_self()), (&answerQueue)->size + 1);
+            enqueue(&answerQueue, pthread_self());
+        }
+
         if(currentCom == pthread_self()) {
             printf("Commentator #%d's turn to speak for %f seconds. \n", indexOf(pthread_self()),t_speak());
             pthread_sleep(t_speak());
-            currentComNo++;
+            
             printf("Commentator #%d finished speaking.\n", indexOf(pthread_self()));
             currentCom = NULL;
         }
@@ -139,7 +150,6 @@ void *commentate(void *arg) {
 void askQuestion() {
     printf("Moderator asks question #%d.\n", currentQ);
     q--;
-    chooseCommentatorsToAnswer();
 }
 
 void chooseCommentatorsToAnswer() {
