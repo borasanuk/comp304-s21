@@ -7,6 +7,7 @@
 #include <string.h>
 
 #define true 1
+#define false 0
 #define P 1
 #define T 1
 #define Q 3
@@ -20,9 +21,10 @@ void askQuestion();
 void chooseCommentatorsToAnswer();
 int indexOf(pthread_t thread);
 double t_speak();
+const char* getTimestamp();
 
 pthread_t mod;
-pthread_t coms[N];
+pthread_t *coms;
 pthread_t currentCom;
 pthread_mutex_t mutex;
 pthread_cond_t cond;
@@ -32,6 +34,8 @@ int q;
 double t;
 double p;
 int currentQ = 0;
+int questionActive = false;
+struct timeval start;
 
 Queue answerQueue;
 
@@ -64,7 +68,8 @@ int main(int argc, char *argv[]) {
     init();
 }
 
-void init () {    
+void init () {  
+    coms = (pthread_t*) malloc(n * sizeof(pthread_t));  
     srand(SEED);
     answerQueue = *createQueue(n);
 
@@ -82,6 +87,8 @@ void init () {
         pthread_create(&coms[i], NULL, commentate, NULL);
     }
 
+    gettimeofday(&start, NULL);
+
     for(int i = 0; i < n; i++) {
         pthread_join(coms[i], NULL);
     }
@@ -94,71 +101,77 @@ void init () {
 
 void *moderate(void *arg) {
     while (q >= 0) {
+        pthread_mutex_lock(&mutex);
         if (isEmpty(&answerQueue) && q == 0) {
             q = -1;
+            questionActive = false;
             pthread_mutex_unlock(&mutex);
             pthread_cond_broadcast(&cond);
             break;
-        } 
-        pthread_sleep(t);
+        }
+        pthread_mutex_unlock(&mutex);
+        pthread_sleep(1);
+        
         pthread_mutex_lock(&mutex);
-        if (isEmpty(&answerQueue) && q > 0) {
+        if (!questionActive) {
             currentQ++;
             askQuestion();
+            questionActive = true;
         } else
             currentCom = dequeue(&answerQueue);
         pthread_mutex_unlock(&mutex);
         pthread_cond_broadcast(&cond);
+        pthread_sleep(1);
+        pthread_mutex_lock(&mutex);
+        if (isEmpty(&answerQueue) && currentCom == NULL) {
+            questionActive = false;
+            pthread_cond_broadcast(&cond);
+        }
+        pthread_mutex_unlock(&mutex);
     }
 }
 
 void *commentate(void *arg) {
-
+    int didAnswerActiveQuestion = false;
     while (q >= 0) {
-        pthread_mutex_lock(&mutex);
-
         // this block is for checking if we're done
-        if (isEmpty(&answerQueue) && q <= 0) {
-            pthread_mutex_unlock(&mutex);
+        if (isEmpty(&answerQueue) && q < 0) {
             pthread_cond_broadcast(&cond);
             break;
         }
-
+        pthread_mutex_lock(&mutex);
         // wait
-        while (isEmpty(&answerQueue) {
+        while (!questionActive || didAnswerActiveQuestion && currentCom != pthread_self()) {
             pthread_cond_wait(&cond,&mutex);
+            // reset
+            if (!questionActive && didAnswerActiveQuestion)
+                didAnswerActiveQuestion = false;
+            if (q < 0)
+                break;
         }
 
-        lastQ++;
-
-        if (p * ((double) rand() / (double) RAND_MAX) <= 100) {
-            printf("Commentator #%d generates answer, position in queue: %d\n", indexOf(pthread_self()), (&answerQueue)->size + 1);
+        if (!didAnswerActiveQuestion && ((double) rand() / (double) RAND_MAX) <= p && q >= 0) {
+            printf("[%s] Commentator #%d generates answer, position in queue: %d\n", getTimestamp(), indexOf(pthread_self()), (&answerQueue)->size + 1);
             enqueue(&answerQueue, pthread_self());
         }
 
+        didAnswerActiveQuestion = true;
+
         if(currentCom == pthread_self()) {
-            printf("Commentator #%d's turn to speak for %f seconds. \n", indexOf(pthread_self()),t_speak());
+            printf("[%s] Commentator #%d's turn to speak for %f seconds. \n", getTimestamp(), indexOf(pthread_self()),t_speak());
             pthread_sleep(t_speak());
             
-            printf("Commentator #%d finished speaking.\n", indexOf(pthread_self()));
+            printf("[%s] Commentator #%d finished speaking.\n", getTimestamp(), indexOf(pthread_self()));
             currentCom = NULL;
+            pthread_cond_broadcast(&cond);
         }
         pthread_mutex_unlock(&mutex);
     }
 }
 
 void askQuestion() {
-    printf("Moderator asks question #%d.\n", currentQ);
+    printf("[%s] Moderator asks question #%d.\n", getTimestamp(), currentQ);
     q--;
-}
-
-void chooseCommentatorsToAnswer() {
-    for (int i = 0; i < n; i++) {
-        if (p * ((double) rand() / (double) RAND_MAX) <= 100) {
-            printf("Commentator #%d generates answer, position in queue: %d\n", i, (&answerQueue)->size + 1);
-            enqueue(&answerQueue, coms[i]);
-        }
-    }
 }
 
 int indexOf(pthread_t thread) {
@@ -169,4 +182,16 @@ int indexOf(pthread_t thread) {
 
 double t_speak() {
     return (t - 1) * ((double) rand() / (double) RAND_MAX) + 1;
+}
+
+const char* getTimestamp() {
+    struct timeval currentTime;
+    gettimeofday(&currentTime, NULL);
+    
+    long mins = (currentTime.tv_sec - start.tv_sec) / 60;
+    long secs = (currentTime.tv_sec - start.tv_sec) % 60;
+    uint64_t millis = ((currentTime.tv_sec - start.tv_sec) * (uint64_t) 100000) + ((currentTime.tv_usec - start.tv_usec) / 1000);
+    char *time = (char*) malloc(10 * sizeof(char));
+    sprintf(time, "%02ld:%02ld.%llu", mins, secs, millis);
+    return time;
 }
