@@ -12,11 +12,11 @@
 
 #define TLB_SIZE 16
 #define PAGES 1024
-#define PAGE_MASK /* TODO */
+#define PAGE_MASK 1023
 
 #define PAGE_SIZE 1024
 #define OFFSET_BITS 10
-#define OFFSET_MASK /* TODO */
+#define OFFSET_MASK 1023
 
 #define MEMORY_SIZE PAGES * PAGE_SIZE
 
@@ -50,12 +50,23 @@ int max(int a, int b)
 
 /* Returns the physical address from TLB or -1 if not present. */
 int search_tlb(unsigned char logical_page) {
-    /* TODO */
+  int i=0; 
+  while(i < TLB_SIZE){
+    struct tlbentry entry = tlb[i];
+    if (entry.logical == logical_page) return entry.physical;
+    i++;
+  }
+    return -1;
 }
 
 /* Adds the specified mapping to the TLB, replacing the oldest mapping (FIFO replacement). */
 void add_to_tlb(unsigned char logical, unsigned char physical) {
-    /* TODO */
+  /* TODO */
+  tlbindex++;
+  struct tlbentry entry;
+  entry.logical = logical;
+  entry.physical = physical;
+  tlb[tlbindex % TLB_SIZE] = entry;
 }
 
 int main(int argc, const char *argv[])
@@ -95,30 +106,34 @@ int main(int argc, const char *argv[])
 
     /* TODO 
     / Calculate the page offset and logical page number from logical_address */
-    int offset =
-    int logical_page =
+    int offset = ;
+    int logical_page = ;
     ///////
-    
+  
     int physical_page = search_tlb(logical_page);
     // TLB hit
     if (physical_page != -1) {
       tlb_hits++;
-      // TLB miss
-    } else {
+    }
+    // TLB miss
+    else 
+    {
       physical_page = pagetable[logical_page];
       
       // Page fault
       if (physical_page == -1) {
-          /* TODO */
-      }
+        /* TODO */
+        page_faults++;
 
+        // should add to memory????
+      }
       add_to_tlb(logical_page, physical_page);
     }
     
     int physical_address = (physical_page << OFFSET_BITS) | offset;
     signed char value = main_memory[physical_page * PAGE_SIZE + offset];
-    
     printf("Virtual address: %d Physical address: %d Value: %d\n", logical_address, physical_address, value);
+
   }
   
   printf("Number of Translated Addresses = %d\n", total_addresses);
