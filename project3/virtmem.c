@@ -16,7 +16,7 @@
 
 #define PAGE_SIZE 1024
 #define OFFSET_BITS 10
-#define OFFSET_MASK 1023
+#define OFFSET_MASK 20
 
 #define MEMORY_SIZE PAGES * PAGE_SIZE
 
@@ -26,10 +26,10 @@
 struct tlbentry {
   unsigned char logical;
   unsigned char physical;
-};
+} typedef tlbentry;
 
 // TLB is kept track of as a circular array, with the oldest element being overwritten once the TLB is full.
-struct tlbentry tlb[TLB_SIZE];
+tlbentry tlb[TLB_SIZE];
 // number of inserts into TLB that have been completed. Use as tlbindex % TLB_SIZE for the index of the next TLB line to use.
 int tlbindex = 0;
 
@@ -52,7 +52,7 @@ int max(int a, int b)
 int search_tlb(unsigned char logical_page) {
   int i=0; 
   while(i < TLB_SIZE){
-    struct tlbentry entry = tlb[i];
+    tlbentry entry = tlb[i];
     if (entry.logical == logical_page) return entry.physical;
     i++;
   }
@@ -63,7 +63,7 @@ int search_tlb(unsigned char logical_page) {
 void add_to_tlb(unsigned char logical, unsigned char physical) {
   /* TODO */
   tlbindex++;
-  struct tlbentry entry;
+  tlbentry entry;
   entry.logical = logical;
   entry.physical = physical;
   tlb[tlbindex % TLB_SIZE] = entry;
@@ -71,16 +71,18 @@ void add_to_tlb(unsigned char logical, unsigned char physical) {
 
 int main(int argc, const char *argv[])
 {
+  /*
   if (argc != 3) {
     fprintf(stderr, "Usage ./virtmem backingstore input\n");
     exit(1);
   }
-  
-  const char *backing_filename = argv[1]; 
+  */
+
+  const char *backing_filename = "BACKING_STORE.bin";//argv[1]; 
   int backing_fd = open(backing_filename, O_RDONLY);
   backing = mmap(0, MEMORY_SIZE, PROT_READ, MAP_PRIVATE, backing_fd, 0); 
   
-  const char *input_filename = argv[2];
+  const char *input_filename = "addresses.txt";//argv[2];
   FILE *input_fp = fopen(input_filename, "r");
   
   // Fill page table entries with -1 for initially empty table.
@@ -104,10 +106,11 @@ int main(int argc, const char *argv[])
     total_addresses++;
     int logical_address = atoi(buffer);
 
-    /* TODO 
+    /* TODO
     / Calculate the page offset and logical page number from logical_address */
-    int offset = ;
-    int logical_page = ;
+    u_int32_t address = ((u_int32_t) (logical_address << 12)) >> 12; // our own little Evil Bit Hack    
+    int offset = (address << 22) >> 22; 
+    int logical_page = address >> 10;
     ///////
   
     int physical_page = search_tlb(logical_page);
@@ -122,10 +125,25 @@ int main(int argc, const char *argv[])
       
       // Page fault
       if (physical_page == -1) {
-        /* TODO */
         page_faults++;
+        physical_page = logical_page; // should be suff. for part 1, need replacement logic for part 2
+        
+        // open store file
+        FILE * fp;
+        fp = fopen ("BACKING_STORE.bin", "r");
+        fseek(fp, logical_page * PAGE_SIZE, SEEK_SET);
 
-        // should add to memory????
+        // read page from store
+        unsigned char v[PAGE_SIZE];
+        fread(v, sizeof(v), 1, fp);
+
+        // write page to memory
+        for (int i = 0; i < PAGE_SIZE; i++)
+          main_memory[physical_page * PAGE_SIZE + i] = v[i];
+        fclose(fp);
+
+        // add to page table
+        pagetable[logical_page] = physical_page;
       }
       add_to_tlb(logical_page, physical_page);
     }
@@ -133,7 +151,7 @@ int main(int argc, const char *argv[])
     int physical_address = (physical_page << OFFSET_BITS) | offset;
     signed char value = main_memory[physical_page * PAGE_SIZE + offset];
     printf("Virtual address: %d Physical address: %d Value: %d\n", logical_address, physical_address, value);
-
+    
   }
   
   printf("Number of Translated Addresses = %d\n", total_addresses);
