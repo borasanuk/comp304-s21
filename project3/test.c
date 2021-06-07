@@ -4,14 +4,14 @@
 #define OFFSET_MASK 20
 
 int main () {
-    int logical_address = 640626;// + pow(2, 20); // pow to check if masking correctly, no effect if working properly
+    int logical_address = 12295 + pow(2, 22) + pow(2, 27);  // + pow(2, 20); // pow to check if masking correctly, no effect if working properly
     u_int32_t address = ((u_int32_t) (logical_address << 12)) >> 12; // our own little Evil Bit Hack    
-    printf("logical_address << 12 = %d\n", logical_address);
+    printf("logical_address = %d\n", logical_address);
     printf("after masking = %u\n", address);
     int logical_page = address >> 10;
     int offset = (address << 22) >> 22;
 
-    printf("expected: page = 3, offset = 3\n");
+    printf("expected: page = 12, offset = 7\n");
     printf("  actual: page = %d, offset = %d\n", logical_page, offset);
 } 
 
