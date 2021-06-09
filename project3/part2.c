@@ -107,13 +107,13 @@ void rm_page(int physical_page) {
 
 int main(int argc, const char *argv[])
 {
-  int policy = FIFO; //atoi(argv[3]);
+  int policy = atoi(argv[3]);
 
-  const char *backing_filename = "BACKING_STORE.bin";//argv[1]; 
+  const char *backing_filename = argv[1]; 
   int backing_fd = open(backing_filename, O_RDONLY);
   backing = mmap(0, MEMORY_SIZE, PROT_READ, MAP_PRIVATE, backing_fd, 0); 
   
-  const char *input_filename = "addresses2.txt"; //argv[2];
+  const char *input_filename = argv[2];
   FILE *input_fp = fopen(input_filename, "r");
   
   // Fill page table entries with -1 for initially empty table.
@@ -166,7 +166,7 @@ int main(int argc, const char *argv[])
 
        // open store file
         FILE * fp;
-        fp = fopen ("BACKING_STORE.bin", "r");
+        fp = fopen (backing_filename, "r");
         fseek(fp, logical_page * PAGE_SIZE, SEEK_SET);
 
         // read page from store
