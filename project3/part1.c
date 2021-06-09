@@ -112,7 +112,7 @@ int main(int argc, const char *argv[])
     int offset = (address << 22) >> 22; 
     int logical_page = address >> 10;
     ///////
-  
+
     int physical_page = search_tlb(logical_page);
     // TLB hit
     if (physical_page != -1) {
